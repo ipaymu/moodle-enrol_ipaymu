@@ -1,0 +1,27 @@
+<div align="center">
+
+    <p><?php print_string("paymentrequired") ?></p>
+    <p><b><?php echo $instancename; ?></b></p>
+    <p><b><?php echo get_string("cost").": {$instance->currency} {$localisedcost}"; ?></b></p>
+    <p><img alt="<?php print_string('ipaymuaccepted', 'enrol_ipaymu') ?>" src="<?php p($logo) ?>" style="width: 75px;"/></p>
+    <p><?php print_string("paymentinstant") ?></p>
+    <?php
+        $merchantOrderId = $timestamp . '-' . $USER->id . '-' . $course->id . '-' . $instance->id;
+    ?>
+    <form action="<?php p($CFG->wwwroot . '/enrol/ipaymu/call.php') ?>" method="post">
+
+        <input type="hidden" name="environment" value="<?php p($this->get_config('environment'))?>" />	
+        <input type="hidden" name="item_name" value="<?php p($coursefullname) ?>" />
+        <input type="hidden" name="orderId" value="<?php echo p($merchantOrderId) ?>" />
+        <input type="hidden" name="amount" value="<?php p($cost) ?>" />
+        <input type="hidden" name="customerVa" value="<?php p($courseshortname . $course->id) ?>" />
+        <input type="hidden" name="notify_url" value="<?php echo "$CFG->wwwroot/enrol/ipaymu/callback.php?merchantOrderId=$merchantOrderId"?>" />
+        <input type="hidden" name="return" value="<?php echo "$CFG->wwwroot/enrol/ipaymu/return.php?course=$course->id&instance=$instance->id&merchantOrderId=$merchantOrderId" ?>" />
+        <input type="hidden" name="cancel_return" value="<?php echo $CFG->wwwroot ?>" />
+        <input type="hidden" name="email" value="<?php p($USER->email) ?>" />
+
+    <input type="submit" value="<?php print_string("sendpaymentbutton", "enrol_ipaymu") ?>" />
+
+    </form>
+
+</div>
