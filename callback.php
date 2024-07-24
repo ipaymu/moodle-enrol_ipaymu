@@ -51,7 +51,7 @@ $ipaymuhelper = new ipaymu_helper();
 $requestdata = $ipaymuhelper->check_transaction($trx_id);
 
 if (isset($requestdata['res']['Status'])) {
-    if ($requestdata['res']['Status'] != 200) {
+    if ($requestdata['res']['Data']['StatusDesc'] != 'Berhasil') {
         throw new moodle_exception('invalidrequest', 'core_error', '', null, 'Payment Failed');
     }
 }else{
