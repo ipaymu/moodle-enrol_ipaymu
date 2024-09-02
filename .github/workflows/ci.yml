@@ -16,70 +16,70 @@
 # .github/workflows/ci.yml
 name: ci
 
-on:
-  workflow_call:
-    inputs:
-      internal_workflow_branch:
-        type: string
-        description: 'Sets the branch the reusable workflow calls reusable workflow actions with'
-        default: 'main'
-      codechecker_max_warnings:
-        type: string
-        description: 'Sets the value for --max-warnings on the moodle-plugin-ci codechecker step. Defaults to -1 which means no limit.'
-        default: '-1'
-      extra_php_extensions:
-        type: string
-      extra_plugin_runners:
-        type: string
-      disable_behat:
-        type: boolean
-      disable_mustache:
-        type: boolean
-      disable_phplint:
-        type: boolean
-      disable_phpdoc:
-        type: boolean
-        description: 'If true, this will skip testing phpdocs'
-        default: false
-      disable_phpunit:
-        type: boolean
-        default: true
-      disable_grunt:
-        type: boolean
-      disable_master:
-        description: 'If true, this will skip testing against moodle/master branch'
-        type: boolean
-      disable_release:
-        description: 'If true, this will skip the release job'
-        type: boolean
-        default: false
-      enable_phpmd:
-        type: boolean
-        default: false
-      disable_phpcpd:
-        type: boolean
-        default: false
-      disable_ci_validate:
-        type: boolean
-        default: false
-      release_branches:
-        description: 'Required if the branch that should process releases is in a non-standard format (e.g. main or MOODLE_XX_STABLE)'
-        type: string
-      moodle_branches:
-        description: 'Specify the MOODLE_XX_STABLE branch you want to test against'
-        type: string
-      min_php:
-        description: 'Specify the minimum version of PHP to test against. Will exclude workflows using older versions of PHP.'
-        type: string
-        default: '7.1'
-      ignore_paths:
-        description: 'Specify custom paths for CI to ignore. Third party libraries are ignored by default.'
-        type: string
-        default: ''
-    secrets:
-      moodle_org_token:
-        required: false
-
+# on:
+#   workflow_call:
+#     inputs:
+#       internal_workflow_branch:
+#         type: string
+#         description: 'Sets the branch the reusable workflow calls reusable workflow actions with'
+#         default: 'main'
+#       codechecker_max_warnings:
+#         type: string
+#         description: 'Sets the value for --max-warnings on the moodle-plugin-ci codechecker step. Defaults to -1 which means no limit.'
+#         default: '-1'
+#       extra_php_extensions:
+#         type: string
+#       extra_plugin_runners:
+#         type: string
+#       disable_behat:
+#         type: boolean
+#       disable_mustache:
+#         type: boolean
+#       disable_phplint:
+#         type: boolean
+#       disable_phpdoc:
+#         type: boolean
+#         description: 'If true, this will skip testing phpdocs'
+#         default: false
+#       disable_phpunit:
+#         type: boolean
+#         default: true
+#       disable_grunt:
+#         type: boolean
+#       disable_master:
+#         description: 'If true, this will skip testing against moodle/master branch'
+#         type: boolean
+#       disable_release:
+#         description: 'If true, this will skip the release job'
+#         type: boolean
+#         default: false
+#       enable_phpmd:
+#         type: boolean
+#         default: false
+#       disable_phpcpd:
+#         type: boolean
+#         default: false
+#       disable_ci_validate:
+#         type: boolean
+#         default: false
+#       release_branches:
+#         description: 'Required if the branch that should process releases is in a non-standard format (e.g. main or MOODLE_XX_STABLE)'
+#         type: string
+#       moodle_branches:
+#         description: 'Specify the MOODLE_XX_STABLE branch you want to test against'
+#         type: string
+#       min_php:
+#         description: 'Specify the minimum version of PHP to test against. Will exclude workflows using older versions of PHP.'
+#         type: string
+#         default: '7.1'
+#       ignore_paths:
+#         description: 'Specify custom paths for CI to ignore. Third party libraries are ignored by default.'
+#         type: string
+#         default: ''
+#     secrets:
+#       moodle_org_token:
+#         required: false
+on: [push, pull_request]
 jobs:
   pre_job:
    name: check if job needs to run
