@@ -38,7 +38,7 @@ use core_privacy\local\request\writer;
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class provider implements
-        // ipaymu Stores user data
+        // Ipaymu Stores user data.
         \core_privacy\local\metadata\provider,
 
         // The ipaymu enrolment plugin contains user's transactions.

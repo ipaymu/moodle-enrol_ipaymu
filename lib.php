@@ -33,8 +33,7 @@ defined('MOODLE_INTERNAL') || die();
  *
  * @return void
  */
-function enrol_ipaymu_before_footer()
-{
+function enrol_ipaymu_before_footer() {
     global $USER, $DB;
 
     if (!enrol_is_enabled('ipaymu')) {
@@ -44,7 +43,10 @@ function enrol_ipaymu_before_footer()
         'userid' => (int)$USER->id,
         'payment_status' => ipaymu_status_codes::CHECK_STATUS_PENDING
     ];
-    $pendingtransactions = $DB->get_records_sql('SELECT * FROM {enrol_ipaymu} WHERE userid = :userid AND payment_status = :payment_status', $params);
+    $pendingtransactions = $DB->get_records_sql('SELECT * FROM {enrol_ipaymu}
+                WHERE userid = :userid
+                AND payment_status = :payment_status',
+                $params);
 
     foreach ($pendingtransactions as $transaction) {
         $referenceurl = $transaction->referenceurl;
@@ -68,15 +70,13 @@ function enrol_ipaymu_before_footer()
  * @author  Michael David - based on code by Eugene Venter, Martin Dougiamas and others
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class enrol_ipaymu_plugin extends enrol_plugin
-{
+class enrol_ipaymu_plugin extends enrol_plugin {
 
     /**
      * Returns the list of currencies supported by ipaymu
      * @return array
      */
-    public function get_currencies()
-    {
+    public function get_currencies() {
         $code = 'IDR';
         $currencies = [];
         $currencies[$code] = new lang_string($code, 'core_currencies');
@@ -88,8 +88,7 @@ class enrol_ipaymu_plugin extends enrol_plugin
      * @param array $instances
      * @return boolean
      */
-    public function get_info_icons(array $instances)
-    {
+    public function get_info_icons(array $instances) {
         $found = false;
         foreach ($instances as $instance) {
             if ($instance->enrolstartdate != 0 && $instance->enrolstartdate > time()) {
@@ -108,8 +107,7 @@ class enrol_ipaymu_plugin extends enrol_plugin
      * Does this plugin assign protected roles are can they be manually removed?
      * @return false
      */
-    public function roles_protected()
-    {
+    public function roles_protected() {
         // Users with role assign cap may tweak the roles later.
         return false;
     }
@@ -119,10 +117,10 @@ class enrol_ipaymu_plugin extends enrol_plugin
      * All plugins allowing this must implement 'enrol/xxx:unenrol' capability
      *
      * @param stdClass $instance course enrol instance
-     * @return bool - true means user with 'enrol/xxx:unenrol' may unenrol others freely, false means nobody may touch user_enrolments
+     * @return bool - True means user with 'enrol/xxx:unenrol' may unenrol others freely,
+     * false means nobody may touch user_enrolments
      */
-    public function allow_unenrol(stdClass $instance)
-    {
+    public function allow_unenrol(stdClass $instance) {
         // Users with unenrol cap may unenrol other users manually - requires enrol/ipaymu:unenrol.
         return true;
     }
@@ -135,8 +133,7 @@ class enrol_ipaymu_plugin extends enrol_plugin
      * @param stdClass $instance course enrol instance
      * @return bool - true means it is possible to change enrol period and status in user_enrolments table
      */
-    public function allow_manage(stdClass $instance)
-    {
+    public function allow_manage(stdClass $instance) {
         // Users with manage cap may tweak period and status - requires enrol/ipaymu:manage.
         return true;
     }
@@ -148,8 +145,7 @@ class enrol_ipaymu_plugin extends enrol_plugin
      *
      * @return bool - true means show "Enrol me in this course" link in course UI
      */
-    public function show_enrolme_link(stdClass $instance)
-    {
+    public function show_enrolme_link(stdClass $instance) {
         return ($instance->status == ENROL_INSTANCE_ENABLED);
     }
 
@@ -158,11 +154,10 @@ class enrol_ipaymu_plugin extends enrol_plugin
      * @param int $courseid
      * @return boolean
      */
-    public function can_add_instance($courseid)
-    {
+    public function can_add_instance($courseid) {
         $context = context_course::instance($courseid, MUST_EXIST);
 
-        if (!has_capability('moodle/course:enrolconfig', $context) or !has_capability('enrol/ipaymu:config', $context)) {
+        if (!has_capability('moodle/course:enrolconfig', $context) || !has_capability('enrol/ipaymu:config', $context)) {
             return false;
         }
 
@@ -175,8 +170,7 @@ class enrol_ipaymu_plugin extends enrol_plugin
      *
      * @return boolean
      */
-    public function use_standard_editing_ui()
-    {
+    public function use_standard_editing_ui() {
         return true;
     }
 
@@ -186,8 +180,7 @@ class enrol_ipaymu_plugin extends enrol_plugin
      * @param array $fields instance fields
      * @return int id of new instance, null if can not be created
      */
-    public function add_instance($course, array $fields = null)
-    {
+    public function add_instance($course, array $fields = null) {
         if ($fields && !empty($fields['cost'])) {
             $fields['cost'] = unformat_float($fields['cost']);
         }
@@ -200,8 +193,7 @@ class enrol_ipaymu_plugin extends enrol_plugin
      * @param stdClass $data modified instance fields
      * @return boolean
      */
-    public function update_instance($instance, $data)
-    {
+    public function update_instance($instance, $data) {
         if ($data) {
             $data->cost = unformat_float($data->cost);
         }
@@ -215,8 +207,7 @@ class enrol_ipaymu_plugin extends enrol_plugin
      * @param stdClass $instance
      * @return string html text, usually a form in a text box
      */
-    public function enrol_page_hook(stdClass $instance)
-    {
+    public function enrol_page_hook(stdClass $instance) {
         global $CFG, $USER, $OUTPUT, $PAGE, $DB;
 
         ob_start();
@@ -308,8 +299,7 @@ class enrol_ipaymu_plugin extends enrol_plugin
      * @param stdClass $course
      * @param int $oldid
      */
-    public function restore_instance(restore_enrolments_structure_step $step, stdClass $data, $course, $oldid)
-    {
+    public function restore_instance(restore_enrolments_structure_step $step, stdClass $data, $course, $oldid) {
         global $DB;
         if ($step->get_task()->get_target() == backup::TARGET_NEW_COURSE) {
             $merge = false;
@@ -322,7 +312,7 @@ class enrol_ipaymu_plugin extends enrol_plugin
                 'currency'   => $data->currency,
             ];
         }
-        if ($merge and $instances = $DB->get_records('enrol', $merge, 'id')) {
+        if ($merge && $instances = $DB->get_records('enrol', $merge, 'id')) {
             $instance = reset($instances);
             $instanceid = $instance->id;
         } else {
@@ -340,8 +330,7 @@ class enrol_ipaymu_plugin extends enrol_plugin
      * @param int $userid
      * @param int $oldinstancestatus
      */
-    public function restore_user_enrolment(restore_enrolments_structure_step $step, $data, $instance, $userid, $oldinstancestatus = null)
-    {
+    public function restore_user_enrolment(restore_enrolments_structure_step $step, $data, $instance, $userid, $oldinstancestatus = null) {
         $this->enrol_user($instance, $userid, null, $data->timestart, $data->timeend, $data->status);
     }
 
@@ -350,8 +339,7 @@ class enrol_ipaymu_plugin extends enrol_plugin
      *
      * @return array
      */
-    protected function get_status_options()
-    {
+    protected function get_status_options() {
         $options = [
             ENROL_INSTANCE_ENABLED  => get_string('yes'),
             ENROL_INSTANCE_DISABLED => get_string('no')
@@ -366,8 +354,7 @@ class enrol_ipaymu_plugin extends enrol_plugin
      * @param context $context
      * @return array
      */
-    protected function get_roleid_options($instance, $context)
-    {
+    protected function get_roleid_options($instance, $context) {
         if ($instance->id) {
             $roles = get_default_enrol_roles($context, $instance->roleid);
         } else {
@@ -385,8 +372,7 @@ class enrol_ipaymu_plugin extends enrol_plugin
      * @param context $context
      * @return bool
      */
-    public function edit_instance_form($instance, MoodleQuickForm $mform, $context)
-    {
+    public function edit_instance_form($instance, MoodleQuickForm $mform, $context) {
 
         $mform->addElement('text', 'name', get_string('custominstancename', 'enrol'));
         $mform->setType('name', PARAM_TEXT);
@@ -407,7 +393,11 @@ class enrol_ipaymu_plugin extends enrol_plugin
         $mform->addElement('select', 'roleid', get_string('assignrole', 'enrol_ipaymu'), $roles);
         $mform->setDefault('roleid', $this->get_config('roleid'));
 
-        $options = ['optional' => true, 'defaultunit' => ipaymu_mathematical_constants::ONE_DAY_IN_SECONDS]; // Moodle default enrol is 1 Day (86400 seconds).
+        $options = [
+            'optional' => true,
+            'defaultunit' => ipaymu_mathematical_constants::ONE_DAY_IN_SECONDS
+        ]; // Moodle default enrol is 1 Day (86400 seconds).
+
         $mform->addElement('duration', 'enrolperiod', get_string('enrolperiod', 'enrol_ipaymu'), $options);
         $mform->setDefault('enrolperiod', $this->get_config('enrolperiod'));
         $mform->addHelpButton('enrolperiod', 'enrolperiod', 'enrol_ipaymu');
@@ -439,11 +429,10 @@ class enrol_ipaymu_plugin extends enrol_plugin
      *         or an empty array if everything is OK.
      * @return void
      */
-    public function edit_instance_validation($data, $files, $instance, $context)
-    {
+    public function edit_instance_validation($data, $files, $instance, $context) {
         $errors = [];
 
-        if (!empty($data['enrolenddate']) and $data['enrolenddate'] < $data['enrolstartdate']) {
+        if (!empty($data['enrolenddate']) && $data['enrolenddate'] < $data['enrolstartdate']) {
             $errors['enrolenddate'] = get_string('enrolenddaterror', 'enrol_ipaymu');
         }
 
@@ -476,8 +465,7 @@ class enrol_ipaymu_plugin extends enrol_plugin
      * @param progress_trace $trace
      * @return int exit code, 0 means ok
      */
-    public function sync(progress_trace $trace)
-    {
+    public function sync(progress_trace $trace) {
         $this->process_expirations($trace);
         return 0;
     }
@@ -488,8 +476,7 @@ class enrol_ipaymu_plugin extends enrol_plugin
      * @param stdClass $instance
      * @return bool
      */
-    public function can_delete_instance($instance)
-    {
+    public function can_delete_instance($instance) {
         $context = context_course::instance($instance->courseid);
         return has_capability('enrol/ipaymu:config', $context);
     }
@@ -500,14 +487,12 @@ class enrol_ipaymu_plugin extends enrol_plugin
      * @param stdClass $instance
      * @return bool
      */
-    public function can_hide_show_instance($instance)
-    {
+    public function can_hide_show_instance($instance) {
         $context = context_course::instance($instance->courseid);
         return has_capability('enrol/ipaymu:config', $context);
     }
     /**
      * Creates a payment link for iPaymu.
-     * 
      * @param array $product
      * @param array $qty
      * @param array $price
@@ -519,26 +504,25 @@ class enrol_ipaymu_plugin extends enrol_plugin
      * @return array
      * @throws Exception
      */
-    function createLink($product, $qty, $price, $name, $phone, $email, $returnurl, $callbackurl)
-    {
+    function createLink($product, $qty, $price, $name, $phone, $email, $returnurl, $callbackurl) {
         $ipaymuhelper = new ipaymu_helper();
-        $createLink = $ipaymuhelper->create($product, $qty, $price, $name, $phone, $email, $returnurl, $callbackurl);
+        $createlink = $ipaymuhelper->create($product, $qty, $price, $name, $phone, $email, $returnurl, $callbackurl);
 
-        if (!empty($createLink['err'])) {
+        if (!empty($createlink['err'])) {
             throw new Exception('Invalid Response from iPaymu. Please contact support@ipaymu.com');
             exit;
         }
 
-        if (empty($createLink['res'])) {
+        if (empty($createlink['res'])) {
             throw new Exception('Request Failed: Invalid Response from iPaymu. Please contact support@ipaymu.com');
             exit;
         }
 
-        if (empty($createLink['res']['Data']['Url'])) {
-            throw new Exception('Invalid request. Response iPaymu: ' . $createLink['res']['Message']);
+        if (empty($createlink['res']['Data']['Url'])) {
+            throw new Exception('Invalid request. Response iPaymu: ' . $createlink['res']['Message']);
             exit;
         }
 
-        return $createLink;
+        return $createlink;
     }
 }

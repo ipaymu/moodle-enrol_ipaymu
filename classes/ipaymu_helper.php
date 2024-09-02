@@ -34,11 +34,9 @@ defined('MOODLE_INTERNAL') || die();
  * @author 2024 Syaifudin <syaifudin.ama@gmail.com>
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class ipaymu_helper
-{
+class ipaymu_helper {
 
-    public function header($body)
-    {
+    public function header($body) {
         $environment = get_config('enrol_ipaymu', 'environment');
 
         if ($environment == 'sandbox') {
@@ -53,13 +51,13 @@ class ipaymu_helper
 
         $method = 'POST';
 
-        // *Don't change this
-        $jsonBody = json_encode($body, JSON_UNESCAPED_SLASHES);
-        $requestBody = strtolower(hash('sha256', $jsonBody));
-        $stringToSign = strtoupper($method) . ':' . $va . ':' . $requestBody . ':' . $secret;
-        $signature = hash_hmac('sha256', $stringToSign, $secret);
-        $timestamp = Date('YmdHis');
-        // End Generate Signature
+        // Don't change this.
+        $jsonbody = json_encode($body, JSON_UNESCAPED_SLASHES);
+        $requestbody = strtolower(hash('sha256', $jsonbody));
+        $stringtosign = strtoupper($method) . ':' . $va . ':' . $requestbody . ':' . $secret;
+        $signature = hash_hmac('sha256', $stringtosign, $secret);
+        $timestamp = date('YmdHis');
+        // End Generate Signature.
 
         return [
             'signature' => $signature,
@@ -70,13 +68,12 @@ class ipaymu_helper
         ];
     }
 
-    public function send($endPoint, $body)
-    {
+    public function send($endpoint, $body) {
         global $CFG;
         require_once($CFG->libdir . '/filelib.php');
 
         $header = $this->header($body);
-        $baseUrl = $header['url'];
+        $baseurl = $header['url'];
 
         $curl = new \curl();
         $options = [
@@ -90,7 +87,7 @@ class ipaymu_helper
             ],
         ];
 
-        $response = $curl->post($baseUrl . $endPoint, json_encode($header['body']), $options);
+        $response = $curl->post($baseurl . $endpoint, json_encode($header['body']), $options);
 
         if ($curl->error) {
             return ['err' => $curl->error];
@@ -99,8 +96,7 @@ class ipaymu_helper
         }
     }
 
-    public function create($product, $qty, $price, $name, $phone, $email, $returnurl, $callbackurl)
-    {
+    public function create($product, $qty, $price, $name, $phone, $email, $returnurl, $callbackurl) {
         $body['product'] = $product;
         $body['qty'] = $qty;
         $body['price'] = $price;
@@ -117,9 +113,8 @@ class ipaymu_helper
         return $this->send('/api/v2/payment', $body);
     }
 
-    public function check_transaction($transaction_id, $account = null)
-    {
-        $body['transactionId'] = $transaction_id;
+    public function check_transaction($transactionid, $account = null) {
+        $body['transactionId'] = $transactionid;
 
         if ($account != null) {
             $body['account'] = $account;
@@ -128,8 +123,7 @@ class ipaymu_helper
         return $this->send('/api/v2/transaction', $body);
     }
 
-    public function log_request($eventarray)
-    {
+    public function log_request($eventarray) {
         $event = \enrol_ipaymu\event\ipaymu_request_log::create($eventarray);
         $event->trigger();
     }

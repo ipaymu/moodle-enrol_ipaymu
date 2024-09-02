@@ -1,6 +1,5 @@
 <?php
-
-// This file is part of Moodle - http://moodle.org/
+// This file is part of Moodle - http://moodle.org/.
 //
 // Moodle is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,21 +29,21 @@ require_once("$CFG->wwwroot/enrol/ipaymu/lib.php");
 
 require_login();
 
-// Get course details and instance
+// Get course details and instance.
 $courseid = required_param('id', PARAM_INT);
 $course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
 $context = context_course::instance($courseid, MUST_EXIST);
 
-// Get enrolment instance
+// Get enrolment instance.
 $instanceid = required_param('instance', PARAM_INT);
 $instance = $DB->get_record('enrol', array('id' => $instanceid, 'courseid' => $courseid), '*', MUST_EXIST);
 
-// Calculate cost and other details
+// Calculate cost and other details.
 $cost = (float)$instance->cost;
 $currency = $instance->currency;
 
-$merchantOrderId = time() . '-' . $USER->id . '-' . $course->id . '-' . $instance->id;
-$callbackurl = "$CFG->wwwroot/enrol/ipaymu/callback.php?merchantOrderId=$merchantOrderId";
+$merchantorderid = time() . '-' . $USER->id . '-' . $course->id . '-' . $instance->id;
+$callbackurl = "$CFG->wwwroot/enrol/ipaymu/callback.php?merchantOrderId=$merchantorderid";
 $returnurl = "$CFG->wwwroot/course/view.php?id=$courseid";
 
 $productdetails = $course->fullname;
@@ -59,7 +58,7 @@ $qty[] = 1;
 $expiryperiod = get_config('enrol_ipaymu', 'expiry');
 $currenttimestamp = round(microtime(true) * ipaymu_mathematical_constants::SECOND_IN_MILLISECONDS);
 
-// Check if the user has an existing payment record
+// Check if the user has an existing payment record.
 $params = [
     'userid' => $USER->id,
     'courseid' => $courseid,
@@ -74,17 +73,20 @@ if (empty($existingdata)) {
 
     $url = $createLink['res']['Data']['Url'];
 
+    $expirycalculate = $expiryperiod * ipaymu_mathematical_constants::MINUTE_IN_SECONDS * ipaymu_mathematical_constants::SECOND_IN_MILLISECONDS;
+    $expiry = $currenttimestamp + $expirycalculate;
+
     $enroldata = new stdClass();
     $enroldata->userid = $USER->id;
     $enroldata->courseid = $courseid;
     $enroldata->instanceid = $instanceid;
     $enroldata->timestamp = $currenttimestamp;
-    $enroldata->merchant_order_id = $merchantOrderId;
+    $enroldata->merchant_order_id = $merchantorderid;
     $enroldata->receiver_id = get_admin()->id;
     $enroldata->receiver_email = get_admin()->email;
     $enroldata->payment_status = ipaymu_status_codes::CHECK_STATUS_PENDING;
     $enroldata->pending_reason = get_string('pending_message', 'enrol_ipaymu');
-    $enroldata->expiryperiod = $currenttimestamp + ($expiryperiod * ipaymu_mathematical_constants::MINUTE_IN_SECONDS * ipaymu_mathematical_constants::SECOND_IN_MILLISECONDS);
+    $enroldata->expiryperiod = $expiry;
     $enroldata->reference = $createLink['res']['Data']['SessionID'];
     $enroldata->referenceurl = $url;
     $enroldata->timeupdated = $currenttimestamp;
@@ -97,15 +99,18 @@ if (empty($existingdata)) {
 
 if ($existingdata->expiryperiod < $currenttimestamp) {
 
-    $createLink = createLink($product, $qty, $price, $name, $phonenumber, $email, $returnurl, $callbackurl);
+    $createlink = createLink($product, $qty, $price, $name, $phonenumber, $email, $returnurl, $callbackurl);
 
-    $url = $createLink['res']['Data']['Url'];
+    $url = $createlink['res']['Data']['Url'];
+
+    $expirycalculate = $expiryperiod * ipaymu_mathematical_constants::MINUTE_IN_SECONDS * ipaymu_mathematical_constants::SECOND_IN_MILLISECONDS;
+    $expiry = $currenttimestamp + $expirycalculate;
 
     $data = new stdClass();
     $data->id = $existingdata->id;
-    $data->expiryperiod = $currenttimestamp + ($expiryperiod * ipaymu_mathematical_constants::MINUTE_IN_SECONDS * ipaymu_mathematical_constants::SECOND_IN_MILLISECONDS);
+    $data->expiryperiod = $expiry;
     $data->timeupdated = $currenttimestamp;
-    $data->reference = $createLink['res']['Data']['SessionID'];
+    $data->reference = $createlink['res']['Data']['SessionID'];
     $data->referenceurl = $url;
 
     $DB->update_record('enrol_ipaymu', $data);

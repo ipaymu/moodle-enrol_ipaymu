@@ -102,7 +102,10 @@ $params = [
     'instanceid' => (int)$custom[3],
     'reference' => $sid
 ];
-$sql = 'SELECT * FROM {enrol_ipaymu} WHERE userid = :userid AND courseid = :courseid AND instanceid = :instanceid AND reference = :reference ORDER BY {enrol_ipaymu}.timestamp DESC';
+$sql = 'SELECT * FROM {enrol_ipaymu}
+WHERE userid = :userid AND courseid = :courseid AND instanceid = :instanceid AND reference = :reference
+ORDER BY {enrol_ipaymu}.timestamp DESC';
+
 $existingdata = $DB->get_record_sql($sql, $params, 1);
 
 $data->id = $existingdata->id;
@@ -151,12 +154,25 @@ $templatedata = new stdClass();
 if (!empty($mailstudents)) {
     $userfrom = empty($teacher) ? core_user::get_support_user() : $teacher;
     $subject = get_string("enrolmentnew", 'enrol', $shortname);
-    $templatedata->student_email_template_header = format_text(get_string('student_email_template_header', 'enrol_ipaymu'), FORMAT_MOODLE);
-    $templatedata->student_email_template_greeting = format_text(get_string('student_email_template_greeting', 'enrol_ipaymu', $a), FORMAT_MOODLE);
-    $templatedata->student_email_template_body = format_text(get_string('student_email_template_body', 'enrol_ipaymu', $a), FORMAT_MOODLE);
+    $templatedata->student_email_template_header = format_text(
+        get_string('student_email_template_header', 'enrol_ipaymu'),
+        FORMAT_MOODLE
+    );
+    $templatedata->student_email_template_greeting = format_text(
+        get_string('student_email_template_greeting', 'enrol_ipaymu', $a),
+        FORMAT_MOODLE
+    );
+    $templatedata->student_email_template_body = format_text(
+        get_string('student_email_template_body', 'enrol_ipaymu', $a),
+        FORMAT_MOODLE
+    );
     $studentemail = $plugin->get_config('student_email');
     $studentemail = html_entity_decode($studentemail);
-    $fullmessage = empty($studentemail) === true ? $OUTPUT->render_from_template('enrol_ipaymu/ipaymu_mail_for_students', $templatedata) : strtr($studentemail, $maildata);
+    if (empty($studentemail) === true) {
+        $fullmessage = $OUTPUT->render_from_template('enrol_ipaymu/ipaymu_mail_for_students', $templatedata);
+    } else {
+        $fullmessage = strtr($studentemail, $maildata);
+    }
 
     // Send test email.
     ob_start();
@@ -168,10 +184,24 @@ if (!empty($mailstudents)) {
 if (!empty($mailteachers) && !empty($teacher)) {
     $subject = get_string("enrolmentnew", 'enrol', $shortname);
     $teacheremail = $plugin->get_config('teacher_email');
-    $templatedata->teacher_email_template_header = format_text(get_string('teacher_email_template_header', 'enrol_ipaymu', $a), FORMAT_MOODLE);
-    $templatedata->teacher_email_template_greeting = format_text(get_string('teacher_email_template_greeting', 'enrol_ipaymu', $a), FORMAT_MOODLE);
-    $templatedata->teacher_email_template_body = format_text(get_string('teacher_email_template_body', 'enrol_ipaymu', $a), FORMAT_MOODLE);
-    $fullmessage = empty($teacheremail) === true ? $OUTPUT->render_from_template('enrol_ipaymu/ipaymu_mail_for_teachers', $templatedata) : strtr($teacheremail, $maildata);
+    $templatedata->teacher_email_template_header = format_text(
+        get_string('teacher_email_template_header', 'enrol_ipaymu', $a),
+        FORMAT_MOODLE
+    );
+    $templatedata->teacher_email_template_greeting = format_text(
+        get_string('teacher_email_template_greeting', 'enrol_ipaymu', $a),
+        FORMAT_MOODLE
+    );
+    $templatedata->teacher_email_template_body = format_text(
+        get_string('teacher_email_template_body', 'enrol_ipaymu', $a),
+        FORMAT_MOODLE
+    );
+    
+    if (empty($teacheremail) === true) {
+        $fullmessage = $OUTPUT->render_from_template('enrol_ipaymu/ipaymu_mail_for_teachers', $templatedata);
+    } else {
+        $fullmessage = strtr($teacheremail, $maildata);
+    }
 
     // Send test email.
     ob_start();
@@ -186,11 +216,26 @@ if (!empty($mailadmins)) {
     foreach ($admins as $admin) {
         $subject = get_string("enrolmentnew", 'enrol', $shortname);
         $maildata['$adminUsername'] = $admin->username;
-        $templatedata->admin_email_template_header = format_text(get_string('admin_email_template_header', 'enrol_ipaymu', $a), FORMAT_MOODLE);
-        $templatedata->admin_email_template_greeting = format_text(get_string('admin_email_template_greeting', 'enrol_ipaymu', $a), FORMAT_MOODLE);
-        $templatedata->admin_email_template_body = format_text(get_string('admin_email_template_body', 'enrol_ipaymu', $a), FORMAT_MOODLE);
+        $templatedata->admin_email_template_header = format_text(
+            get_string('admin_email_template_header', 'enrol_ipaymu', $a),
+            FORMAT_MOODLE
+        );
+        $templatedata->admin_email_template_greeting = format_text(
+            get_string('admin_email_template_greeting', 'enrol_ipaymu', $a),
+            FORMAT_MOODLE
+        );
+        $templatedata->admin_email_template_body = format_text(
+            get_string('admin_email_template_body', 'enrol_ipaymu', $a),
+            FORMAT_MOODLE
+        );
         $templatedata->adminUsername = $admin->username;
-        $fullmessage = empty($adminemail) === true ? $OUTPUT->render_from_template('enrol_ipaymu/ipaymu_mail_for_admins', $templatedata) : strtr($adminemail, $maildata);
+
+        if (empty($adminemail) === true) {
+            $fullmessage = $OUTPUT->render_from_template('enrol_ipaymu/ipaymu_mail_for_admins', $templatedata);
+        } else {
+            $fullmessage = strtr($adminemail, $maildata);
+        }
+
         // Send test email.
         ob_start();
         echo($fullmessagehtml . '<br />');

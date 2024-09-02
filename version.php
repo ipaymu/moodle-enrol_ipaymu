@@ -25,7 +25,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-// Reference https://docs.moodle.org/dev/version.php
+// Reference https://docs.moodle.org/dev/version.php.
 
 $plugin->component = 'enrol_ipaymu';
 $plugin->release = '0.1.0';
