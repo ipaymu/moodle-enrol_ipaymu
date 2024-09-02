@@ -41,20 +41,20 @@ if (!enrol_is_enabled('ipaymu')) {
 // Gets all response parameter from ipaymu callback.
 $merchantorderid = required_param('merchantOrderId', PARAM_TEXT);
 $status = required_param('status', PARAM_TEXT);
-$trx_id = required_param('trx_id', PARAM_TEXT);
+$trxid = required_param('trx_id', PARAM_TEXT);
 $sid = required_param('sid', PARAM_TEXT);
 
 // Making sure that merchant order id is in the correct format.
 $custom = explode('-', $merchantorderid);
 
 $ipaymuhelper = new ipaymu_helper();
-$requestdata = $ipaymuhelper->check_transaction($trx_id);
+$requestdata = $ipaymuhelper->check_transaction($trxid);
 
 if (isset($requestdata['res']['Status'])) {
     if ($requestdata['res']['Data']['PaidStatus'] != 'paid') {
         throw new moodle_exception('invalidrequest', 'core_error', '', null, 'Payment Failed');
     }
-}else{
+} else {
     throw new moodle_exception('invalidrequest', 'core_error', '', null, 'Wrong Callback Payment');
 }
 
