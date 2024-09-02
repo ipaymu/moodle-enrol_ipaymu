@@ -24,9 +24,9 @@
 
 use enrol_ipaymu\ipaymu_status_codes;
 use enrol_ipaymu\ipaymu_mathematical_constants;
-use enrol_ipaymu\ipaymu_helper;
 
 require("../../config.php");
+require_once("$CFG->wwwroot/enrol/ipaymu/lib.php");
 
 require_login();
 
@@ -70,7 +70,7 @@ $existingdata = $DB->get_record_sql($sql, $params, 1); // Will return exactly 1 
 
 if (empty($existingdata)) {
 
-    $createLink = create_ipaymu_link($product, $qty, $price, $name, $phonenumber, $email, $returnurl, $callbackurl);
+    $createLink = createLink($product, $qty, $price, $name, $phonenumber, $email, $returnurl, $callbackurl);
 
     $url = $createLink['res']['Data']['Url'];
 
@@ -97,7 +97,7 @@ if (empty($existingdata)) {
 
 if ($existingdata->expiryperiod < $currenttimestamp) {
 
-    $createLink = create_ipaymu_link($product, $qty, $price, $name, $phonenumber, $email, $returnurl, $callbackurl);
+    $createLink = createLink($product, $qty, $price, $name, $phonenumber, $email, $returnurl, $callbackurl);
 
     $url = $createLink['res']['Data']['Url'];
 
