@@ -1,3 +1,4 @@
+[![ci](https://github.com/ipaymu/moodle-enrol_ipaymu/actions/workflows/ci.yml/badge.svg)](https://github.com/ipaymu/moodle-enrol_ipaymu/actions/workflows/ci.yml)
 # Moodle Payment Gateway iPaymu
 
 Welcome to the iPaymu plugin repository for Moodle. This plugin is a payment as enrolment in moodle. As direction from moodle documentation about plugin type enrol. iPaymu attend a plugin to help you receive payment through iPaymu.
