@@ -76,7 +76,7 @@ if (empty($existingdata)) {
 
     $url = $createlink['res']['Data']['Url'];
 
-    $expirycalculate = 
+    $expirycalculate =
         $expiryperiod * ipaymu_mathematical_constants::MINUTE_IN_SECONDS * ipaymu_mathematical_constants::SECOND_IN_MILLISECONDS;
     $expiry = $currenttimestamp + $expirycalculate;
 
