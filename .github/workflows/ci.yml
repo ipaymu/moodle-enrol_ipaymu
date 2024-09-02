@@ -12,119 +12,267 @@
 #     with:
 #       disable_mustache: true
 #       disable_phpcpd: true
-name: Run all tests
 
-# Run this workflow every time a new commit pushed to your repository
-on: [push, pull_request]
+# .github/workflows/ci.yml
+name: ci
+
+on:
+  workflow_call:
+    inputs:
+      internal_workflow_branch:
+        type: string
+        description: 'Sets the branch the reusable workflow calls reusable workflow actions with'
+        default: 'main'
+      codechecker_max_warnings:
+        type: string
+        description: 'Sets the value for --max-warnings on the moodle-plugin-ci codechecker step. Defaults to -1 which means no limit.'
+        default: '-1'
+      extra_php_extensions:
+        type: string
+      extra_plugin_runners:
+        type: string
+      disable_behat:
+        type: boolean
+      disable_mustache:
+        type: boolean
+      disable_phplint:
+        type: boolean
+      disable_phpdoc:
+        type: boolean
+        description: 'If true, this will skip testing phpdocs'
+        default: false
+      disable_phpunit:
+        type: boolean
+        default: true
+      disable_grunt:
+        type: boolean
+      disable_master:
+        description: 'If true, this will skip testing against moodle/master branch'
+        type: boolean
+      disable_release:
+        description: 'If true, this will skip the release job'
+        type: boolean
+        default: false
+      enable_phpmd:
+        type: boolean
+        default: false
+      disable_phpcpd:
+        type: boolean
+        default: false
+      disable_ci_validate:
+        type: boolean
+        default: false
+      release_branches:
+        description: 'Required if the branch that should process releases is in a non-standard format (e.g. main or MOODLE_XX_STABLE)'
+        type: string
+      moodle_branches:
+        description: 'Specify the MOODLE_XX_STABLE branch you want to test against'
+        type: string
+      min_php:
+        description: 'Specify the minimum version of PHP to test against. Will exclude workflows using older versions of PHP.'
+        type: string
+        default: '7.1'
+      ignore_paths:
+        description: 'Specify custom paths for CI to ignore. Third party libraries are ignored by default.'
+        type: string
+        default: ''
+    secrets:
+      moodle_org_token:
+        required: false
 
 jobs:
+  pre_job:
+   name: check if job needs to run
+   runs-on: ubuntu-latest
+   # Map a step output to a job output
+   outputs:
+     should_skip: ${{ steps.skip_check.outputs.should_skip }}
+   steps:
+     - id: skip_check
+       # docs: https://github.com/fkirc/skip-duplicate-actions#skip-concurrent-workflow-runs
+       uses: fkirc/skip-duplicate-actions@master
+       with:
+         # Do not trust previous successful runs
+         skip_after_successful_duplicate: false
+         # Ensure should_skip is true only if 2 concurrent workflows are working on the same files (content)
+         concurrent_skipping: 'same_content_newer'
+  prepare_matrix:
+    needs: pre_job
+    if: needs.pre_job.outputs.should_skip != 'true'
+    name: prepare test matrix
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+    runs-on: 'ubuntu-latest'
+    outputs:
+      matrix: ${{ steps.parse-version.outputs.matrix }}
+      component: ${{ steps.parse-version.outputs.component }}
+      highest_moodle_branch: ${{ steps.parse-version.outputs.highest_moodle_branch }}
+      release_required: ${{ (
+          contains(github.event_name, 'push') &&
+          steps.check-version.outputs.any_changed == 'true' &&
+          steps.check-branch.outputs.publishable == 'true'
+        ) }}
+    steps:
+      - name: Check if currently on a publishable branch
+        id: check-branch
+        run: |
+          publishable=${{ github.event.repository.fork == false &&
+          inputs.disable_release == false && (
+            (startsWith(github.ref, 'refs/heads/MOODLE_') &&
+            endsWith(github.ref, '_STABLE')) ||
+            github.ref == 'refs/heads/main' || (
+              inputs.release_branches != '' &&
+              endsWith(github.ref, inputs.release_branches)
+            )
+          ) }}
+
+          echo "::set-output name=publishable::$publishable"
+      - uses: actions/checkout@v3
+      - name: Check out CI code
+        uses: actions/checkout@v3
+        with:
+          path: ci
+          repository: catalyst/catalyst-moodle-workflows
+          ref: ${{ inputs.internal_workflow_branch }}
+          token: ${{ github.token }}
+      - name: Check out plugin code
+        uses: actions/checkout@v3
+        with:
+          # Needed for 'changed-files' actions (alternatively could be a fixed
+          # large number but may cause issues if limited).
+          fetch-depth: 20
+          path: plugin
+          submodules: true
+      - name: Check if release is required (version.php changes)
+        if: contains(github.event_name, 'push') && steps.check-branch.outputs.publishable == 'true'
+        uses: tj-actions/changed-files@v23
+        id: check-version
+        with:
+          path: plugin
+          files: |
+            version.php
+          since_last_remote_commit: "true"
+      - name: Install PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+          # extensions: yaml # FYI: makes the workflow very slow
+      - name: Determine test requirements and plugin info
+        id: parse-version
+        run: |
+          chmod +x "${GITHUB_WORKSPACE}/ci/.github/actions/parse-version/script.sh"
+          "${GITHUB_WORKSPACE}/ci/.github/actions/parse-version/script.sh"
+        env:
+          disable_master: ${{ inputs.disable_master }}
+          filter: ${{ inputs.moodle_branches }}
+          min_php: ${{ inputs.min_php }}
+
   setup:
-    runs-on: ubuntu-latest
+    name: ${{ matrix.moodle-branch }} - ${{ matrix.database }} - php ${{ matrix.php }} - ${{ needs.prepare_matrix.outputs.component }}
+    needs: prepare_matrix
+    if: needs.pre_job.outputs.should_skip != 'true'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.prepare_matrix.outputs.matrix) }}
+    env:
+      IGNORE_PATHS: tests/fixtures
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.moodle-branch }}-${{ matrix.database }}-${{ matrix.php }}-${{ needs.prepare_matrix.outputs.component }}
+      cancel-in-progress: true
+    runs-on: 'ubuntu-latest'
     services:
       postgres:
-        image: postgres:10
+        image: "postgres:${{ matrix.pgsql-ver }}"
         env:
           POSTGRES_USER: 'postgres'
           POSTGRES_HOST_AUTH_METHOD: 'trust'
-        # Health check to wait for postgres to start.
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 3
         ports:
           - 5432:5432
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 3
       mariadb:
-        image: mariadb:10.5
+        image: "mariadb:${{ matrix.mariadb-ver }}"
         env:
           MYSQL_USER: 'root'
           MYSQL_ALLOW_EMPTY_PASSWORD: "true"
+          MYSQL_CHARACTER_SET_SERVER: "utf8mb4"
+          MYSQL_COLLATION_SERVER: "utf8mb4_unicode_ci"
         ports:
           - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval 10s --health-timeout 5s --health-retries 3
-    strategy:
-      fail-fast: false
-      matrix:
-        php-versions: ['7.3', '7.4']
-        database: ['pgsql', 'mariadb']
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 3
     steps:
-      - name: Check out repository code
-        uses: actions/checkout@v2
-        with:
-          # Clone in plugin subdir, so we can setup CI in default directory.
-          path: plugin
-
-      - name: Install node
-        uses: actions/setup-node@v1
-        with:
-          # TODO: Check if we can support .nvmrc
-          node-version: '14.15.0'
-
-      - name: Setup PHP environment
-        uses: shivammathur/setup-php@v2 #https://github.com/shivammathur/setup-php
-        with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: mbstring, pgsql, mysqli
-          tools: phpunit
-
-      - name: Deploy moodle-plugin-ci
+      - name: Set custom environment variables
         run: |
-          composer create-project -n --no-dev --prefer-dist moodlehq/moodle-plugin-ci ci ^3
-          # Add dirs to $PATH
-          echo $(cd ci/bin; pwd) >> $GITHUB_PATH
-          echo $(cd ci/vendor/bin; pwd) >> $GITHUB_PATH
-          # PHPUnit depends on en_AU.UTF-8 locale
-          sudo locale-gen en_AU.UTF-8
-      - name: Install moodle-plugin-ci
-        # Need explicit IP to stop mysql client fail on attempt to use unix socket.
-        run: moodle-plugin-ci install -vvv --plugin ./plugin --db-host=127.0.0.1
+          USER_IGNORE_PATHS="${{ inputs.ignore_paths }}"
+          if [ -n "${USER_IGNORE_PATHS}" ]; then
+            IGNORE_PATHS="${IGNORE_PATHS},${USER_IGNORE_PATHS}"
+            echo "IGNORE_PATHS=${IGNORE_PATHS}" >> $GITHUB_ENV
+          fi
+      - name: Check out CI code
+        uses: actions/checkout@v3
+        with:
+          path: ci
+          repository: catalyst/catalyst-moodle-workflows
+          ref: ${{ inputs.internal_workflow_branch }}
+          token: ${{ github.token }}
+      - name: Run plugin setup
+        uses: ./ci/.github/plugin/setup
+        with:
+          codechecker_max_warnings: ${{ inputs.codechecker_max_warnings }}
+          extra_php_extensions: ${{ inputs.extra_php_extensions }}
+          extra_plugin_runners: ${{ inputs.extra_plugin_runners }}
+          disable_behat:    ${{ inputs.disable_behat }}
+          disable_grunt:    ${{ inputs.disable_grunt }}
+          disable_mustache: ${{ inputs.disable_mustache }}
+          disable_phpdoc:   ${{ inputs.disable_phpdoc }}
+          disable_phplint:  ${{ inputs.disable_phplint }}
+          disable_phpunit:  ${{ inputs.disable_phpunit }}
+          enable_phpmd:     ${{ inputs.enable_phpmd }}
+          disable_phpcpd:    ${{ inputs.disable_phpcpd }}
+          disable_ci_validate: ${{ inputs.disable_ci_validate }}
+          highest_moodle_branch: ${{ needs.prepare_matrix.outputs.highest_moodle_branch }}
+
+  release:
+    name: Release to the Moodle plugin directory
+    needs: [setup, prepare_matrix]
+    # If it matches a standard branch naming convention, it should permit a
+    # release to happen, otherwise this step should be skipped.
+    # Patterns allowed:
+    # - MOODLE_XX_STABLE
+    # - MOODLE_XXX_STABLE
+    # - main
+    if: needs.pre_job.outputs.should_skip != 'true' && needs.prepare_matrix.outputs.release_required == 'true'
+    runs-on: 'ubuntu-latest'
+    outputs:
+      has-secrets: ${{ steps.check-secrets.outputs.has-secrets }}
+    steps:
+      - name: Check if MOODLE_ORG_TOKEN has been supplied
+        id: check-secrets
         env:
-          DB: ${{ matrix.database }}
-          # TODO: Omitted MOODLE_BRANCH results in regex failure, investigate.
-          MOODLE_BRANCH: 'MOODLE_311_STABLE'
+          SECRET_TO_CHECK: '${{ secrets.moodle_org_token }}'
+        if: ${{ env.SECRET_TO_CHECK != '' }}
+        run: echo "::set-output name=has-secrets::true"
 
-      - name: Run phplint
-        if: ${{ always() }}
-        run: moodle-plugin-ci phplint
+      - name: Check out CI code
+        uses: actions/checkout@v3
+        with:
+          path: ci
+          repository: catalyst/catalyst-moodle-workflows
+          ref: ${{ inputs.internal_workflow_branch }}
+          token: ${{ github.token }}
 
-      - name: Run phpcpd
-        if: ${{ always() }}
-        run: moodle-plugin-ci phpcpd || true
-
-      - name: Run phpmd
-        if: ${{ always() }}
-        run: moodle-plugin-ci phpmd
-
-      - name: Run codechecker
-        if: ${{ always() }}
-        run: moodle-plugin-ci codechecker
-
-      - name: Run validate
-        if: ${{ always() }}
-        run: moodle-plugin-ci validate
-
-      - name: Run savepoints
-        if: ${{ always() }}
-        run: moodle-plugin-ci savepoints
-
-      - name: Run mustache
-        if: ${{ always() }}
-        run: moodle-plugin-ci phpcpd || true
-        env:
-          MUSTACHE_IGNORE_NAMES: mobile_teacher_form.mustache
-
-      - name: Run grunt
-        if: ${{ always() }}
-        run: moodle-plugin-ci grunt
-
-      - name: Run phpdoc
-        if: ${{ always() }}
-        run: moodle-plugin-ci phpdoc
-
-      - name: Run phpunit
-        if: ${{ always() }}
-        run: | 
-             moodle-plugin-ci phpunit
-             cd moodle
-             vendor/bin/phpunit --fail-on-risky --disallow-test-output --filter tool_dataprivacy_metadata_registry_testcase
-             vendor/bin/phpunit --fail-on-risky --disallow-test-output --testsuite core_privacy_testsuite --filter provider_testcase 
-
-      - name: Run behat
-        if: ${{ always() }}
-        run: moodle-plugin-ci behat --profile chrome
+      - name: Run plugin release
+        if: steps.check-secrets.outputs.has-secrets != ''
+        uses: ./ci/.github/plugin/release
+        with:
+          plugin_name: ${{ needs.prepare_matrix.outputs.component }}
+          moodle_org_token: ${{ secrets.moodle_org_token }}
