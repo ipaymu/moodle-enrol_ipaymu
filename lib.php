@@ -25,7 +25,6 @@ use enrol_ipaymu\ipaymu_status_codes;
 use enrol_ipaymu\ipaymu_mathematical_constants;
 use enrol_ipaymu\ipaymu_helper;
 
-defined('MOODLE_INTERNAL') || die();
 
 /**
  * Creates a notification for every non-expired pending payment.
@@ -499,7 +498,6 @@ class enrol_ipaymu_plugin extends enrol_plugin {
     }
 
     /**
-     * 
      * Creates a payment link for iPaymu.
      * @param array $product
      * @param array $qty
