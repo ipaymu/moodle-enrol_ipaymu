@@ -27,8 +27,8 @@ $tasks = [
     [
         'classname' => 'enrol_ipaymu\task\payment_expirations',
         'blocking' => 0,
-        'minute' => '*',
-        'hour' => '*',
+        'minute' => '0', // Runs at the start of every hour
+        'hour' => '*', // Runs every hour
         'day' => '*',
         'month' => '*',
         'dayofweek' => '*',

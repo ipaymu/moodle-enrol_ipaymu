@@ -15,16 +15,15 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- *     Stores all the function needed to run the plugin for better readability
+ * Stores all the functions needed to run the plugin for better readability
  *
  * @package   enrol_ipaymu
- * @copyright  2024 Syaifudin <syaifudin.ama@gmail.com>
+ * @copyright 2024 Syaifudin <syaifudin.ama@gmail.com>
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 namespace enrol_ipaymu;
 
-use curl;
 use Exception;
 
 defined('MOODLE_INTERNAL') || die();
@@ -32,11 +31,11 @@ defined('MOODLE_INTERNAL') || die();
 /**
  * Stores all reusable functions here.
  *
- * @author  2024 Syaifudin <syaifudin.ama@gmail.com>
+ * @author 2024 Syaifudin <syaifudin.ama@gmail.com>
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class ipaymu_helper {
-
+class ipaymu_helper
+{
 
     public function header($body)
     {
@@ -44,91 +43,83 @@ class ipaymu_helper {
 
         if ($environment == 'sandbox') {
             $url = 'https://sandbox.ipaymu.com';
-            $va     = get_config('enrol_ipaymu', 'ipaymu_va_sandbox');
+            $va = get_config('enrol_ipaymu', 'ipaymu_va_sandbox');
             $secret = get_config('enrol_ipaymu', 'ipaymu_apikey_sandbox');
         } else {
-            $url    = 'https://my.ipaymu.com';
-            $va     = get_config('enrol_ipaymu', 'ipaymu_va');
+            $url = 'https://my.ipaymu.com';
+            $va = get_config('enrol_ipaymu', 'ipaymu_va');
             $secret = get_config('enrol_ipaymu', 'ipaymu_apikey');
         }
-        // throw new Exception($secret);
-        
-        $method       = 'POST'; //method
+
+        $method = 'POST';
 
         // *Don't change this
-        $jsonBody     = json_encode($body, JSON_UNESCAPED_SLASHES);
-        $requestBody  = strtolower(hash('sha256', $jsonBody));
+        $jsonBody = json_encode($body, JSON_UNESCAPED_SLASHES);
+        $requestBody = strtolower(hash('sha256', $jsonBody));
         $stringToSign = strtoupper($method) . ':' . $va . ':' . $requestBody . ':' . $secret;
-        $signature    = hash_hmac('sha256', $stringToSign, $secret);
-        $timestamp    = Date('YmdHis');
-        //End Generate Signature
+        $signature = hash_hmac('sha256', $stringToSign, $secret);
+        $timestamp = Date('YmdHis');
+        // End Generate Signature
 
         return [
             'signature' => $signature,
             'timestamp' => $timestamp,
             'va' => $va,
             'body' => $body,
-            'url'=> $url
+            'url' => $url
         ];
     }
 
-    public function send($endPoint, $body){
-        $header = $this->header($body);
+    public function send($endPoint, $body)
+    {
+        global $CFG;
+        require_once($CFG->libdir . '/filelib.php');
 
-        
-        $curl = curl_init();
+        $header = $this->header($body);
         $baseUrl = $header['url'];
 
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => $baseUrl.$endPoint,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => '',
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 0,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_POSTFIELDS => json_encode($header['body']),
-            CURLOPT_HTTPHEADER => array(
+        $curl = new \curl();
+        $options = [
+            'CURLOPT_RETURNTRANSFER' => true,
+            'CURLOPT_CUSTOMREQUEST' => 'POST',
+            'CURLOPT_HTTPHEADER' => [
                 'Content-Type: application/json',
-                'signature: '.$header['signature'],
-                'va: '.$header['va'],
-                'timestamp: '.$header['timestamp']
-            ),
-        ));
+                'signature: ' . $header['signature'],
+                'va: ' . $header['va'],
+                'timestamp: ' . $header['timestamp']
+            ],
+        ];
 
-        $err = curl_error($curl);
-        $response['res'] = json_decode(curl_exec($curl),true);
-        $response['err'] = $err;
-        curl_close($curl);
-        
-        // throw new Exception(json_encode($response));
-        
-        return $response;
+        $response = $curl->post($baseUrl . $endPoint, json_encode($header['body']), $options);
+
+        if ($curl->error) {
+            return ['err' => $curl->error];
+        } else {
+            return ['res' => json_decode($response, true)];
+        }
     }
 
-    public function create($product, $qty, $price, $name, $phone, $email, $returnurl, $callbackurl){
+    public function create($product, $qty, $price, $name, $phone, $email, $returnurl, $callbackurl)
+    {
+        $body['product'] = $product;
+        $body['qty'] = $qty;
+        $body['price'] = $price;
 
-        $body['product']    = $product;
-        $body['qty']        = $qty;
-        $body['price']      = $price;
-
-        $body['buyerName']  = $name;
+        $body['buyerName'] = $name;
         $body['buyerEmail'] = $email;
         $body['buyerPhone'] = $phone == null ? null : $phone;
 
-        $body['returnUrl']  = $returnurl;
-        $body['notifyUrl']  = $callbackurl;
+        $body['returnUrl'] = $returnurl;
+        $body['notifyUrl'] = $callbackurl;
 
-        $body['feeDirection']  = 'BUYER';
+        $body['feeDirection'] = 'BUYER';
 
         return $this->send('/api/v2/payment', $body);
     }
 
     public function check_transaction($transaction_id, $account = null)
     {
-
-        $body['transactionId']    = $transaction_id;
+        $body['transactionId'] = $transaction_id;
 
         if ($account != null) {
             $body['account'] = $account;
@@ -137,7 +128,8 @@ class ipaymu_helper {
         return $this->send('/api/v2/transaction', $body);
     }
 
-    public function log_request($eventarray) {
+    public function log_request($eventarray)
+    {
         $event = \enrol_ipaymu\event\ipaymu_request_log::create($eventarray);
         $event->trigger();
     }

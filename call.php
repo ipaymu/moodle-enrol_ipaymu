@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -29,120 +30,91 @@ require("../../config.php");
 
 require_login();
 
+// Get course details and instance
+$courseid = required_param('id', PARAM_INT);
+$course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
+$context = context_course::instance($courseid, MUST_EXIST);
+
+// Get enrolment instance
+$instanceid = required_param('instance', PARAM_INT);
+$instance = $DB->get_record('enrol', array('id' => $instanceid, 'courseid' => $courseid), '*', MUST_EXIST);
+
+// Calculate cost and other details
+$cost = (float)$instance->cost;
+$currency = $instance->currency;
+
+$merchantOrderId = time() . '-' . $USER->id . '-' . $course->id . '-' . $instance->id;
+$callbackurl = "$CFG->wwwroot/enrol/ipaymu/callback.php?merchantOrderId=$merchantOrderId";
+$returnurl = "$CFG->wwwroot/course/view.php?id=$courseid";
+
+$productdetails = $course->fullname;
+$email = $USER->email;
+$phonenumber = empty($USER->phone1) ? "" : $USER->phone1;
+$name = $USER->firstname . ' ' . $USER->lastname;
+
+$product[] = $productdetails;
+$price[] = $cost;
+$qty[] = 1;
+
 $expiryperiod = get_config('enrol_ipaymu', 'expiry');
-$currenttimestamp = round(microtime(true) * ipaymu_mathematical_constants::SECOND_IN_MILLISECONDS);// In milisecond.
+$currenttimestamp = round(microtime(true) * ipaymu_mathematical_constants::SECOND_IN_MILLISECONDS);
 
-$environment = required_param('environment', PARAM_TEXT);
-$paymentamount = required_param('amount', PARAM_INT);
-        
-$merchantorderid = required_param('orderId', PARAM_TEXT);
-$customervaname = required_param('customerVa', PARAM_TEXT);
-$productdetails = required_param('item_name', PARAM_TEXT);
-$email = required_param('email', PARAM_TEXT);
-$callbackurl = required_param('notify_url', PARAM_TEXT);
-
-$custom = explode('-', $merchantorderid);
-$userid = (int)$custom[1];
-$courseid = (int)$custom[2];
-$instanceid = (int)$custom[3];
-
-$phonenumber = empty($USER->phone1) === true ? "" : $USER->phone1;
-
-$admin = get_admin(); // Only 1 MAIN admin can exist at a time.
-
-// Check if the user has not made a transaction before.
+// Check if the user has an existing payment record
 $params = [
-    'userid' => $userid,
+    'userid' => $USER->id,
     'courseid' => $courseid,
     'instanceid' => $instanceid,
 ];
 $sql = 'SELECT * FROM {enrol_ipaymu} WHERE userid = :userid AND courseid = :courseid AND instanceid = :instanceid ORDER BY {enrol_ipaymu}.timestamp DESC';
-$context = context_course::instance($courseid, MUST_EXIST);
-
 $existingdata = $DB->get_record_sql($sql, $params, 1); // Will return exactly 1 row. The newest transaction that was saved.
-
-$enroldata = new stdClass();
-$enroldata->userid = $USER->id;
-$enroldata->courseid = $courseid;
-$enroldata->instanceid = $instanceid;
-$enroldata->timestamp = $currenttimestamp;
-$enroldata->merchant_order_id = $merchantorderid;
-$enroldata->receiver_id = $admin->id;
-$enroldata->receiver_email = $admin->email;
-$enroldata->payment_status = ipaymu_status_codes::CHECK_STATUS_PENDING;
-$enroldata->pending_reason = get_string('pending_message', 'enrol_ipaymu');
-$enroldata->expiryperiod = $currenttimestamp + ($expiryperiod * ipaymu_mathematical_constants::MINUTE_IN_SECONDS * ipaymu_mathematical_constants::SECOND_IN_MILLISECONDS);
-
-$enroldata->reference = $request->reference; // Reference only received after successful request transaction.
-$enroldata->timeupdated = round(microtime(true) * ipaymu_mathematical_constants::SECOND_IN_MILLISECONDS); // In milisecond.
-
-$product[] = $productdetails;
-$price[] = $paymentamount;
-$qty[] = 1;
-$name = $USER->firstname.' '. $USER->lastname;
-$email = $USER->email;
-$phone = $phonenumber;
-
-$returnurl = "$CFG->wwwroot/course/view.php?id=$courseid";
-
-function createLink($product, $qty, $price, $name, $phone, $email, $returnurl, $callbackurl) {
-    $ipaymuhelper = new ipaymu_helper();
-    $createLink = $ipaymuhelper->create($product, $qty, $price, $name, $phone, $email, $returnurl, $callbackurl);
-    
-    if (!empty($createLink['err'])) {
-        throw new Exception('Invalid Response from iPaymu. Please contact support@ipaymu.com');
-        exit;
-    }
-
-    if (empty($createLink['res'])) {
-        throw new Exception('Request Failed: Invalid Response from iPaymu. Please contact support@ipaymu.com');
-        exit;
-    }
-
-    if (empty($createLink['res']['Data']['Url'])) {
-        throw new Exception('Invalid request. Response iPaymu: ' . $createLink['res']['Message']);
-        exit;
-    }
-
-    return $createLink;
-}
 
 if (empty($existingdata)) {
 
-    $createLink = createLink($product, $qty, $price, $name, $phone, $email, $returnurl, $callbackurl);
+    $createLink = create_ipaymu_link($product, $qty, $price, $name, $phonenumber, $email, $returnurl, $callbackurl);
 
     $url = $createLink['res']['Data']['Url'];
 
-    $enroldata->reference = $createLink['res']['Data']['SessionID']; // Reference only received after successful request transaction.
-    $enroldata->referenceurl = $url; // Link payment iPaymu
-    $enroldata->timeupdated = round(microtime(true) * ipaymu_mathematical_constants::SECOND_IN_MILLISECONDS); // In milisecond.
+    $enroldata = new stdClass();
+    $enroldata->userid = $USER->id;
+    $enroldata->courseid = $courseid;
+    $enroldata->instanceid = $instanceid;
+    $enroldata->timestamp = $currenttimestamp;
+    $enroldata->merchant_order_id = $merchantOrderId;
+    $enroldata->receiver_id = get_admin()->id;
+    $enroldata->receiver_email = get_admin()->email;
+    $enroldata->payment_status = ipaymu_status_codes::CHECK_STATUS_PENDING;
+    $enroldata->pending_reason = get_string('pending_message', 'enrol_ipaymu');
+    $enroldata->expiryperiod = $currenttimestamp + ($expiryperiod * ipaymu_mathematical_constants::MINUTE_IN_SECONDS * ipaymu_mathematical_constants::SECOND_IN_MILLISECONDS);
+    $enroldata->reference = $createLink['res']['Data']['SessionID'];
+    $enroldata->referenceurl = $url;
+    $enroldata->timeupdated = $currenttimestamp;
+
     $DB->insert_record('enrol_ipaymu', $enroldata);
-    
-    header('location: '. $url);die;
+
+    header('Location: ' . $url);
+    exit;
 }
 
 if ($existingdata->expiryperiod < $currenttimestamp) {
 
-    $createLink = createLink($product, $qty, $price, $name, $phone, $email, $returnurl, $callbackurl);
+    $createLink = create_ipaymu_link($product, $qty, $price, $name, $phonenumber, $email, $returnurl, $callbackurl);
 
     $url = $createLink['res']['Data']['Url'];
 
-    $sql = 'SELECT * FROM {enrol_ipaymu} WHERE reference = :reference ORDER BY {enrol_ipaymu}.timestamp DESC';
-    $dtExitst = $DB->get_record_sql($sql, ['reference' => $existingdata->reference], 1);
-
     $data = new stdClass();
-    $data->id = $dtExitst->id;
+    $data->id = $existingdata->id;
     $data->expiryperiod = $currenttimestamp + ($expiryperiod * ipaymu_mathematical_constants::MINUTE_IN_SECONDS * ipaymu_mathematical_constants::SECOND_IN_MILLISECONDS);
-    $data->timeupdated = round(microtime(true) * ipaymu_mathematical_constants::SECOND_IN_MILLISECONDS); // In milisecond.
-    $data->reference = $createLink['res']['Data']['SessionID']; // Reference only received after successful request transaction.
-    $data->referenceurl = $url; // Link payment iPaymu
+    $data->timeupdated = $currenttimestamp;
+    $data->reference = $createLink['res']['Data']['SessionID'];
+    $data->referenceurl = $url;
+
     $DB->update_record('enrol_ipaymu', $data);
 
-    header('location: '. $url);die;
-
+    header('Location: ' . $url);
+    exit;
 }
 
 if ($existingdata->payment_status === ipaymu_status_codes::CHECK_STATUS_PENDING) {
-    header('location: '. $existingdata->referenceurl);die;
+    header('Location: ' . $existingdata->referenceurl);
+    exit;
 }
-
