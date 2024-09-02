@@ -26,7 +26,6 @@ namespace enrol_ipaymu\task;
 use enrol_ipaymu\ipaymu_status_codes;
 use enrol_ipaymu\ipaymu_mathematical_constants;
 
-defined('MOODLE_INTERNAL') || die();
 
 /**
  * Scheduled task to turn the transaction status of any pending transaction into expired

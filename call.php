@@ -76,7 +76,8 @@ if (empty($existingdata)) {
 
     $url = $createlink['res']['Data']['Url'];
 
-    $expirycalculate = $expiryperiod * ipaymu_mathematical_constants::MINUTE_IN_SECONDS * ipaymu_mathematical_constants::SECOND_IN_MILLISECONDS;
+    $expirycalculate = 
+        $expiryperiod * ipaymu_mathematical_constants::MINUTE_IN_SECONDS * ipaymu_mathematical_constants::SECOND_IN_MILLISECONDS;
     $expiry = $currenttimestamp + $expirycalculate;
 
     $enroldata = new stdClass();
@@ -106,7 +107,8 @@ if ($existingdata->expiryperiod < $currenttimestamp) {
 
     $url = $createlink['res']['Data']['Url'];
 
-    $expirycalculate = $expiryperiod * ipaymu_mathematical_constants::MINUTE_IN_SECONDS * ipaymu_mathematical_constants::SECOND_IN_MILLISECONDS;
+    $expirycalculate =
+        $expiryperiod * ipaymu_mathematical_constants::MINUTE_IN_SECONDS * ipaymu_mathematical_constants::SECOND_IN_MILLISECONDS;
     $expiry = $currenttimestamp + $expirycalculate;
 
     $data = new stdClass();

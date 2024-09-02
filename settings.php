@@ -22,7 +22,6 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
 
 if ($ADMIN->fulltree) {
     // Check root/lib/adminlib.php for lists of available classes.

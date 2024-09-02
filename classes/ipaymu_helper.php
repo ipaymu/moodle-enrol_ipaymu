@@ -26,7 +26,6 @@ namespace enrol_ipaymu;
 
 use Exception;
 
-defined('MOODLE_INTERNAL') || die();
 
 /**
  * Stores all reusable functions here.

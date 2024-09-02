@@ -23,7 +23,6 @@
 
 namespace enrol_ipaymu\event;
 
-defined('MOODLE_INTERNAL') || die();
 
 /**
  * This class will be instantiated whenever a log is needed. Use $event->trigger() to log the events.

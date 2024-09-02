@@ -330,7 +330,13 @@ class enrol_ipaymu_plugin extends enrol_plugin {
      * @param int $userid
      * @param int $oldinstancestatus
      */
-    public function restore_user_enrolment(restore_enrolments_structure_step $step, $data, $instance, $userid, $oldinstancestatus = null) {
+    public function restore_user_enrolment(
+        restore_enrolments_structure_step $step,
+        $data,
+        $instance,
+        $userid,
+        $oldinstancestatus = null
+    ) {
         $this->enrol_user($instance, $userid, null, $data->timestart, $data->timeend, $data->status);
     }
 
@@ -491,7 +497,9 @@ class enrol_ipaymu_plugin extends enrol_plugin {
         $context = context_course::instance($instance->courseid);
         return has_capability('enrol/ipaymu:config', $context);
     }
+
     /**
+     * 
      * Creates a payment link for iPaymu.
      * @param array $product
      * @param array $qty
@@ -504,7 +512,7 @@ class enrol_ipaymu_plugin extends enrol_plugin {
      * @return array
      * @throws Exception
      */
-    function createlink($product, $qty, $price, $name, $phone, $email, $returnurl, $callbackurl) {
+    public function createlink($product, $qty, $price, $name, $phone, $email, $returnurl, $callbackurl) {
         $ipaymuhelper = new ipaymu_helper();
         $createlink = $ipaymuhelper->create($product, $qty, $price, $name, $phone, $email, $returnurl, $callbackurl);
 

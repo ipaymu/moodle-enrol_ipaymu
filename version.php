@@ -23,7 +23,6 @@
  * @var stdClass $plugin
  */
 
-defined('MOODLE_INTERNAL') || die();
 
 // Reference https://docs.moodle.org/dev/version.php.
 
