@@ -28,8 +28,8 @@ defined('MOODLE_INTERNAL') || die();
 // Reference https://docs.moodle.org/dev/version.php.
 
 $plugin->component = 'enrol_ipaymu';
-$plugin->release = '0.1.0';
-$plugin->version = 2024031300;
+$plugin->release = '0.1.1';
+$plugin->version = 2024090300;
 $plugin->requires = 2022112800;
 $plugin->maturity = MATURITY_STABLE;
 $plugin->cron     = 60;
