@@ -13,3 +13,4 @@ jobs:
       disable_mustache: true
       disable_phpcpd: true
       disable_phpunit: true
+      disable_phpdoc: true
