@@ -115,6 +115,7 @@ $data->timeupdated = round(microtime(true) * ipaymu_mathematical_constants::SECO
 
 $DB->update_record('enrol_ipaymu', $data);
 
+
 // Standard mail sending by Moodle to notify users if there are enrolments.
 // Pass $view=true to filter hidden caps if the user cannot see them.
 if ($users = get_users_by_capability($context, 'moodle/course:update', 'u.*', 'u.id ASC', '', '', '', '', false, true)) {
