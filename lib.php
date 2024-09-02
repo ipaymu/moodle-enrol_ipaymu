@@ -52,14 +52,14 @@ function enrol_ipaymu_before_footer() {
         $referenceurl = $transaction->referenceurl;
         $course = $DB->get_record('course', ['id' => $transaction->courseid]);
 
-        // Prepare the data to be passed into the language string
-        $messageData = (object)[
+        // Prepare the data to be passed into the language string.
+        $messagedata = (object)[
             'course' => $course->fullname,
             'url' => $referenceurl,
         ];
 
-        // Get the string from the language file
-        $message = get_string('pending_message', 'enrol_ipaymu', $messageData);
+        // Get the string from the language file.
+        $message = get_string('pending_message', 'enrol_ipaymu', $messagedata);
 
         \core\notification::add($message, \core\output\notification::NOTIFY_WARNING);
     }
@@ -504,7 +504,7 @@ class enrol_ipaymu_plugin extends enrol_plugin {
      * @return array
      * @throws Exception
      */
-    function createLink($product, $qty, $price, $name, $phone, $email, $returnurl, $callbackurl) {
+    function createlink($product, $qty, $price, $name, $phone, $email, $returnurl, $callbackurl) {
         $ipaymuhelper = new ipaymu_helper();
         $createlink = $ipaymuhelper->create($product, $qty, $price, $name, $phone, $email, $returnurl, $callbackurl);
 

@@ -64,14 +64,17 @@ $params = [
     'courseid' => $courseid,
     'instanceid' => $instanceid,
 ];
-$sql = 'SELECT * FROM {enrol_ipaymu} WHERE userid = :userid AND courseid = :courseid AND instanceid = :instanceid ORDER BY {enrol_ipaymu}.timestamp DESC';
+$sql = 'SELECT * FROM {enrol_ipaymu}
+WHERE userid = :userid AND courseid = :courseid AND instanceid = :instanceid
+ORDER BY {enrol_ipaymu}.timestamp DESC';
+
 $existingdata = $DB->get_record_sql($sql, $params, 1); // Will return exactly 1 row. The newest transaction that was saved.
 
 if (empty($existingdata)) {
 
-    $createLink = createLink($product, $qty, $price, $name, $phonenumber, $email, $returnurl, $callbackurl);
+    $createlink = createlink($product, $qty, $price, $name, $phonenumber, $email, $returnurl, $callbackurl);
 
-    $url = $createLink['res']['Data']['Url'];
+    $url = $createlink['res']['Data']['Url'];
 
     $expirycalculate = $expiryperiod * ipaymu_mathematical_constants::MINUTE_IN_SECONDS * ipaymu_mathematical_constants::SECOND_IN_MILLISECONDS;
     $expiry = $currenttimestamp + $expirycalculate;
@@ -87,7 +90,7 @@ if (empty($existingdata)) {
     $enroldata->payment_status = ipaymu_status_codes::CHECK_STATUS_PENDING;
     $enroldata->pending_reason = get_string('pending_message', 'enrol_ipaymu');
     $enroldata->expiryperiod = $expiry;
-    $enroldata->reference = $createLink['res']['Data']['SessionID'];
+    $enroldata->reference = $createlink['res']['Data']['SessionID'];
     $enroldata->referenceurl = $url;
     $enroldata->timeupdated = $currenttimestamp;
 
@@ -99,7 +102,7 @@ if (empty($existingdata)) {
 
 if ($existingdata->expiryperiod < $currenttimestamp) {
 
-    $createlink = createLink($product, $qty, $price, $name, $phonenumber, $email, $returnurl, $callbackurl);
+    $createlink = createlink($product, $qty, $price, $name, $phonenumber, $email, $returnurl, $callbackurl);
 
     $url = $createlink['res']['Data']['Url'];
 

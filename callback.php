@@ -196,7 +196,7 @@ if (!empty($mailteachers) && !empty($teacher)) {
         get_string('teacher_email_template_body', 'enrol_ipaymu', $a),
         FORMAT_MOODLE
     );
-    
+
     if (empty($teacheremail) === true) {
         $fullmessage = $OUTPUT->render_from_template('enrol_ipaymu/ipaymu_mail_for_teachers', $templatedata);
     } else {

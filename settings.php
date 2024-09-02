@@ -58,7 +58,7 @@ if ($ADMIN->fulltree) {
             PARAM_TEXT,
             40)
         );
-    
+
     $settings->add(
         new admin_setting_configtext(
             'enrol_ipaymu/ipaymu_apikey',
@@ -67,7 +67,7 @@ if ($ADMIN->fulltree) {
             '',
             PARAM_TEXT)
         );
-    
+
     $settings->add(
         new admin_setting_configtext(
             'enrol_ipaymu/ipaymu_va_sandbox',
