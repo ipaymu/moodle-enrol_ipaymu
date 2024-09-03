@@ -28,7 +28,7 @@ use enrol_ipaymu\ipaymu_helper;
 
 // This script does not require login.
 require("../../config.php"); // phpcs:ignore
-require_once("lib.php");
+require_once("{$CFG->wwwroot}/enrol/ipaymu/lib.php");
 require_once("{$CFG->libdir}/enrollib.php");
 require_once("{$CFG->libdir}/filelib.php");
 
