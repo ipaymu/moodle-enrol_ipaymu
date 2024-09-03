@@ -28,7 +28,7 @@ use enrol_ipaymu\ipaymu_helper;
 
 // This script does not require login.
 require("../../config.php"); // phpcs:ignore
-require_once("{$CFG->wwwroot}/enrol/ipaymu/lib.php");
+require_once("lib.php");
 require_once("{$CFG->libdir}/enrollib.php");
 require_once("{$CFG->libdir}/filelib.php");
 
@@ -38,20 +38,24 @@ if (!enrol_is_enabled('ipaymu')) {
     throw new moodle_exception('errdisabled', 'enrol_ipaymu');
 }
 
+$post = file_get_contents('php://input');
+$request = json_decode($post);
 // Gets all response parameter from ipaymu callback.
+
 $merchantorderid = required_param('merchantOrderId', PARAM_TEXT);
-$status = required_param('status', PARAM_TEXT);
-$trxid = required_param('trx_id', PARAM_TEXT);
-$sid = required_param('sid', PARAM_TEXT);
 
 // Making sure that merchant order id is in the correct format.
 $custom = explode('-', $merchantorderid);
+$userid = $custom[1];
+$courseid = $custom[2];
+$instanceid = $custom[3];
+$sid = $request->sid;
 
 $ipaymuhelper = new ipaymu_helper();
-$requestdata = $ipaymuhelper->check_transaction($trxid);
+$check = $ipaymuhelper->check_transaction($request->trx_id);
 
-if (isset($requestdata['res']['Status'])) {
-    if ($requestdata['res']['Data']['PaidStatus'] != 'paid') {
+if (isset($check['res']['Status'])) {
+    if ($check['res']['Data']['PaidStatus'] != 'paid') {
         throw new moodle_exception('invalidrequest', 'core_error', '', null, 'Payment Failed');
     }
 } else {
@@ -59,16 +63,16 @@ if (isset($requestdata['res']['Status'])) {
 }
 
 $data = new stdClass();
-$data->userid = (int)$custom[1];
-$data->courseid = (int)$custom[2];
-$user = $DB->get_record("user", ["id" => $data->userid], "*", MUST_EXIST);
-$course = $DB->get_record("course", ["id" => $data->courseid], "*", MUST_EXIST);
-$context = context_course::instance($course->id, MUST_EXIST);
+$data->userid = (int)$userid;
+$data->courseid = (int)$courseid;
+$user = $DB->get_record("user", ["id" => $userid], "*", MUST_EXIST);
+$course = $DB->get_record("course", ["id" => $courseid], "*", MUST_EXIST);
+$context = context_course::instance($courseid, MUST_EXIST);
 $PAGE->set_context($context);
 
 // Set enrolment duration (default from Moodle).
 // Only accessible if all required parameters are available.
-$data->instanceid = (int)$custom[3];
+$data->instanceid = (int)$instanceid;
 $plugininstance = $DB->get_record("enrol", ["id" => $data->instanceid, "enrol" => "ipaymu", "status" => 0], "*", MUST_EXIST);
 $plugin = enrol_get_plugin('ipaymu');
 if ($plugininstance->enrolperiod) {
@@ -85,7 +89,7 @@ $plugin->enrol_user($plugininstance, $user->id, $plugininstance->roleid, $timest
 // Add to log that callback has been received and student enrolled.
 $eventarray = [
     'context' => $context,
-    'relateduserid' => (int)$custom[1],
+    'relateduserid' => (int)$userid,
     'other' => [
         'Log Details' => get_string('log_callback', 'enrol_ipaymu'),
         'merchantOrderId' => $merchantorderid,
@@ -97,9 +101,9 @@ $ipaymuhelper->log_request($eventarray);
 $admin = get_admin(); // Only 1 MAIN admin can exist at a time.
 
 $params = [
-    'userid' => (int)$custom[1],
-    'courseid' => (int)$custom[2],
-    'instanceid' => (int)$custom[3],
+    'userid' => (int)$userid,
+    'courseid' => (int)$courseid,
+    'instanceid' => (int)$instanceid,
     'reference' => $sid
 ];
 $sql = 'SELECT * FROM {enrol_ipaymu}
@@ -114,7 +118,6 @@ $data->pending_reason = get_string('log_callback', 'enrol_ipaymu');
 $data->timeupdated = round(microtime(true) * ipaymu_mathematical_constants::SECOND_IN_MILLISECONDS);
 
 $DB->update_record('enrol_ipaymu', $data);
-
 
 // Standard mail sending by Moodle to notify users if there are enrolments.
 // Pass $view=true to filter hidden caps if the user cannot see them.
@@ -238,14 +241,11 @@ if (!empty($mailadmins)) {
 
         // Send test email.
         ob_start();
-        echo($fullmessagehtml . '<br />');
+        echo ($fullmessagehtml . '<br />');
         $success = email_to_user($admin, $user, $subject, $fullmessage, $fullmessagehtml);
         $smtplog = ob_get_contents();
         ob_end_clean();
     }
 }
-
-return "Success";
-
-
-
+echo 'Success';
+return;
