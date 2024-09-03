@@ -25,7 +25,7 @@ use enrol_ipaymu\ipaymu_status_codes;
 use enrol_ipaymu\ipaymu_mathematical_constants;
 
 require("../../config.php");
-require_once("$CFG->wwwroot/enrol/ipaymu/lib.php");
+require_once("{$CFG->wwwroot}/enrol/ipaymu/lib.php");
 
 require_login();
 
