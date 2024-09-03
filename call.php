@@ -25,7 +25,7 @@ use enrol_ipaymu\ipaymu_status_codes;
 use enrol_ipaymu\ipaymu_mathematical_constants;
 
 require("../../config.php");
-require_once("{$CFG->wwwroot}/enrol/ipaymu/lib.php");
+require_once("lib.php");
 
 require_login();
 
@@ -70,9 +70,12 @@ ORDER BY {enrol_ipaymu}.timestamp DESC';
 
 $existingdata = $DB->get_record_sql($sql, $params, 1); // Will return exactly 1 row. The newest transaction that was saved.
 
+$call = new enrol_ipaymu_plugin();
+
 if (empty($existingdata)) {
 
-    $createlink = createlink($product, $qty, $price, $name, $phonenumber, $email, $returnurl, $callbackurl);
+
+    $createlink = $call->createlink($product, $qty, $price, $name, $phonenumber, $email, $returnurl, $callbackurl);
 
     $url = $createlink['res']['Data']['Url'];
 
@@ -103,7 +106,7 @@ if (empty($existingdata)) {
 
 if ($existingdata->expiryperiod < $currenttimestamp) {
 
-    $createlink = createlink($product, $qty, $price, $name, $phonenumber, $email, $returnurl, $callbackurl);
+    $createlink = $call->createlink($product, $qty, $price, $name, $phonenumber, $email, $returnurl, $callbackurl);
 
     $url = $createlink['res']['Data']['Url'];
 
