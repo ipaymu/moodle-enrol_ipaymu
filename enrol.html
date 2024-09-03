@@ -1,22 +1,38 @@
 <div align="center">
+  <p>
+    <?php print_string("paymentrequired") ?>
+  </p>
+  <p>
+    <b>
+      <?php echo $instancename; ?>
+    </b>
+  </p>
+  <p>
+    <b>
+      <?php echo get_string("cost").": {$instance->currency} {$localisedcost}";
+      ?>
+    </b>
+  </p>
+  <p>
+    <img
+      alt="<?php print_string('ipaymuaccepted', 'enrol_ipaymu') ?>"
+      src="<?php p($logo) ?>"
+      style="width: 75px"
+    />
+  </p>
+  <p>
+    <?php print_string("paymentinstant") ?>
+  </p>
 
-    <p>
-        <?php print_string("paymentrequired") ?>
-    </p>
-    <p><b>
-            <?php echo $instancename; ?>
-        </b></p>
-    <p><b>
-            <?php echo get_string("cost").": {$instance->currency} {$localisedcost}"; ?>
-        </b></p>
-    <p><img alt="<?php print_string('ipaymuaccepted', 'enrol_ipaymu') ?>" src="<?php p($logo) ?>"
-            style="width: 75px;" /></p>
-    <p>
-        <?php print_string("paymentinstant") ?>
-    </p>
-
-    <form action="<?php p($CFG->wwwroot . '/enrol/ipaymu/call.php') ?>" method="post">
-        <input type="submit" value="<?php print_string(" sendpaymentbutton", "enrol_ipaymu" ) ?>" />
-    </form>
-
+  <form
+    action="<?php p($CFG->wwwroot . '/enrol/ipaymu/call.php') ?>"
+    method="post"
+  >
+    <input type="hidden" name="id" value="<?php echo $course->id; ?>" />
+    <input type="hidden" name="instance" value="<?php echo $instance->id; ?>" />
+    <input
+      type="submit"
+      value="<?php print_string('sendpaymentbutton', 'enrol_ipaymu' ) ?>"
+    />
+  </form>
 </div>
